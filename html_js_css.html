@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>이름 입력</title>
+
+  <style>
+    .container {
+      margin: 80px 0 0 50px;
+      font-size: 24px;
+    }
+
+    .input-area {
+      display: flex;
+      align-items: center;
+      gap: 55px;
+    }
+
+    .name-input {
+      width: 210px;
+      height: 55px;
+      margin-left: 25px;
+      border: 3px solid #5b87b5;
+      font-size: 24px;
+      padding: 0 10px;
+      box-sizing: border-box;
+    }
+
+    .input-button {
+      width: 115px;
+      height: 55px;
+      background-color: white;
+      border: 3px solid #5b87b5;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .result {
+      margin-top: 55px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <div class="input-area">
+      <label for="name">이름</label>
+
+      <input
+        type="text"
+        id="name"
+        class="name-input"
+      >
+
+      <button
+        type="button"
+        class="input-button"
+        onclick="showName()"
+      >
+        입력
+      </button>
+    </div>
+
+    <p class="result">
+      당신의 이름은 <strong id="result">_____</strong> 입니다.
+    </p>
+
+  </div>
+
+  <script>
+    function showName() {
+      const name = document.getElementById("name").value;
+
+      document.getElementById("result").textContent = name;
+    }
+  </script>
+
+</body>
+</html>

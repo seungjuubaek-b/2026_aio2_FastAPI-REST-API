@@ -1,117 +1,110 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <title>도서 목록</title>
+  <head>
+    <meta charset="utf-8" />
+    <title>도서 목록</title>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #fffaf5;
-      padding: 50px;
-      text-align: center;
-    }
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #fffaf5;
+        padding: 50px;
+        text-align: center;
+      }
 
-    h1 {
-      margin-bottom: 25px;
-    }
+      h1 {
+        margin-bottom: 25px;
+      }
 
-    button {
-      padding: 12px 22px;
-      margin-bottom: 30px;
+      button {
+        padding: 12px 22px;
+        margin-bottom: 30px;
 
-      border: none;
-      border-radius: 12px;
+        border: none;
+        border-radius: 12px;
 
-      background-color: #ffb6b9;
-      color: white;
+        background-color: #ffb6b9;
+        color: white;
 
-      font-size: 16px;
-      cursor: pointer;
-    }
+        font-size: 16px;
+        cursor: pointer;
+      }
 
-    button:hover {
-      background-color: #ff9fa3;
-    }
+      button:hover {
+        background-color: #ff9fa3;
+      }
 
-    table {
-      width: 80%;
-      max-width: 900px;
+      table {
+        width: 80%;
+        max-width: 900px;
 
-      margin: 0 auto;
+        margin: 0 auto;
 
-      border-collapse: separate;
-      border-spacing: 0;
+        border-collapse: separate;
+        border-spacing: 0;
 
-      background-color: white;
-      border-radius: 15px;
-      overflow: hidden;
+        background-color: white;
+        border-radius: 15px;
+        overflow: hidden;
 
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    }
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      }
 
-    th {
-      background-color: #ffe0e2;
-      padding: 18px;
-    }
+      th {
+        background-color: #ffe0e2;
+        padding: 18px;
+      }
 
-    td {
-      padding: 18px 25px;
-      border-top: 1px solid #eeeeee;
-    }
+      td {
+        padding: 18px 25px;
+        border-top: 1px solid #eeeeee;
+      }
 
-    tbody tr:hover {
-      background-color: #fff5f5;
-    }
-  </style>
-</head>
+      tbody tr:hover {
+        background-color: #fff5f5;
+      }
+    </style>
+  </head>
 
-<body>
+  <body>
+    <h1>📚 도서 목록</h1>
 
-  <h1>📚 도서 목록</h1>
+    <button id="loadBtn">📖 목록 불러오기</button>
 
-  <button id="loadBtn">📖 목록 불러오기</button>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>제목</th>
+          <th>저자</th>
+          <th>출판년도</th>
+        </tr>
+      </thead>
 
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>제목</th>
-        <th>저자</th>
-        <th>출판년도</th>
-      </tr>
-    </thead>
+      <tbody id="result"></tbody>
+    </table>
 
-    <tbody id="result">
-    </tbody>
-  </table>
+    <script>
+      document.getElementById("loadBtn").addEventListener("click", async () => {
+        const books = await (await fetch("/books")).json();
 
+        const tbody = document.getElementById("result");
 
-  <script>
-    document.getElementById("loadBtn").addEventListener("click", async () => {
+        tbody.innerHTML = "";
 
-      const books = await (await fetch("/books")).json();
+        for (const b of books) {
+          const tr = document.createElement("tr");
 
-      const tbody = document.getElementById("result");
-
-      tbody.innerHTML = "";
-
-      for (const b of books) {
-
-        const tr = document.createElement("tr");
-
-        tr.innerHTML = `
+          tr.innerHTML = `
           <td>${b.id}</td>
           <td>${b.title}</td>
           <td>${b.author}</td>
           <td>${b.year}</td>
         `;
 
-        tbody.appendChild(tr);
-      }
-
-    });
-  </script>
-
-</body>
+          tbody.appendChild(tr);
+        }
+      });
+    </script>
+  </body>
 </html>

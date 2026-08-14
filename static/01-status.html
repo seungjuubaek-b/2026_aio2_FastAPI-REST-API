@@ -11,12 +11,12 @@
 
     <script>
       async function load() {
-        const health = await (await fetch("/health")).json();
-        const info = await (await fetch("/info")).json();
+        const health_res = await (await fetch("/health")).json();
+        const info_res = await (await fetch("/info")).json();
         document.getElementById("status").textContent =
-          "상태: " + health.status;
+          "상태: " + health_res.status;
         document.getElementById("info").textContent =
-          info.name + " v" + info.version;
+          info_res.name + " v" + info_res.version;
       }
       load();
     </script>

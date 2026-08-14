@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>1일차 검색 + 오늘 등록</title>
+    <style>
+      body {
+        font-family:
+          Segoe UI,
+          Arial,
+          sans-serif;
+        margin: 24px;
+      }
+      .container {
+        display: flex;
+        gap: 32px;
+      }
+      .card {
+        flex: 1;
+        padding: 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      label {
+        display: block;
+        margin-top: 8px;
+      }
+      input[type="text"],
+      textarea,
+      select {
+        width: 100%;
+        padding: 8px;
+        margin-top: 4px;
+        box-sizing: border-box;
+      }
+      button {
+        margin-top: 12px;
+        padding: 8px 12px;
+      }
+      .muted {
+        color: #666;
+        font-size: 0.9rem;
+      }
+      .results {
+        margin-top: 12px;
+      }
+      .notice {
+        margin-top: 8px;
+        color: green;
+      }
+      .error {
+        margin-top: 8px;
+        color: #a00;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>1일차 검색 화면 &amp; 오늘 등록 화면 (한 페이지)</h1>
+    <div class="container">
+      <section class="card" aria-labelledby="search-heading">
+        <h2 id="search-heading">1일차 검색</h2>
+        <form id="search-form">
+          <label for="search-query">검색어</label>
+          <input
+            id="search-query"
+            name="q"
+            type="text"
+            placeholder="검색어를 입력하세요"
+          />
+          <label for="search-filter">필터</label>
+          <select id="search-filter" name="filter">
+            <option value="all">전체</option>
+            <option value="today">오늘</option>
+            <option value="day1">1일차</option>
+          </select>
+          <button id="search-btn" type="submit">검색</button>
+        </form>
+        <div class="results" id="search-results" aria-live="polite"></div>
+      </section>
+
+      <section class="card" aria-labelledby="register-heading">
+        <h2 id="register-heading">오늘 등록</h2>
+        <form id="register-form">
+          <label for="title">제목</label>
+          <input
+            id="title"
+            name="title"
+            type="text"
+            required
+            placeholder="제목 입력"
+          />
+
+          <label for="content">내용</label>
+          <textarea
+            id="content"
+            name="content"
+            rows="4"
+            placeholder="내용 입력"
+          ></textarea>
+
+          <button id="register-btn" type="submit">등록</button>
+          <div class="muted">
+            등록 버튼은 누른 직후 비활성화되어 중복 클릭을 방지합니다.
+          </div>
+          <div id="register-notice" role="status" aria-live="polite"></div>
+        </form>
+      </section>
+    </div>
+
+    <script>
+      // 검색 폼 처리 (간단한 데모: 실제 백엔드가 없으면 모의 결과를 사용)
+      const searchForm = document.getElementById("search-form");
+      const searchResults = document.getElementById("search-results");
+      searchForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const q = document.getElementById("search-query").value.trim();
+        const filter = document.getElementById("search-filter").value;
+        searchResults.textContent = "검색 중...";
+
+        // 시연 목적: 실제 /api/search가 있다면 fetch로 사용, 없으면 모의 응답
+        try {
+          const url = `/api/search?q=${encodeURIComponent(q)}&filter=${encodeURIComponent(filter)}`;
+          const resp = await fetch(url, { method: "GET" });
+          if (!resp.ok) throw new Error("네트워크 응답 오류");
+          const data = await resp.json();
+          renderSearch(data);
+        } catch (err) {
+          // 모의 데이터
+          const faux = [
+            { id: 1, title: "1일차 예시 항목 A", day: "day1" },
+            { id: 2, title: "오늘 예시 항목 B", day: "today" },
+          ]
+            .filter((item) => filter === "all" || item.day === filter)
+            .filter((item) => q === "" || item.title.includes(q));
+          renderSearch(faux);
+        }
+      });
+
+      function renderSearch(items) {
+        if (!items || items.length === 0) {
+          searchResults.innerHTML =
+            '<div class="muted">검색 결과가 없습니다.</div>';
+          return;
+        }
+        const list = document.createElement("ul");
+        for (const it of items) {
+          const li = document.createElement("li");
+          li.textContent = `${it.title} (id: ${it.id}, ${it.day || "n/a"})`;
+          list.appendChild(li);
+        }
+        searchResults.innerHTML = "";
+        searchResults.appendChild(list);
+      }
+
+      // 등록 폼 처리: 클릭 직후 버튼 비활성화, 성공 시 입력칸 비우기
+      const registerForm = document.getElementById("register-form");
+      const registerBtn = document.getElementById("register-btn");
+      const notice = document.getElementById("register-notice");
+
+      registerForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        // 즉시 버튼 비활성화 — 중복 클릭 방지
+        registerBtn.disabled = true;
+        notice.textContent = "";
+
+        const formData = new FormData(registerForm);
+        const payload = Object.fromEntries(formData.entries());
+
+        try {
+          // 실제 엔드포인트가 있다면 아래 fetch가 사용됩니다.
+          const resp = await fetch("/api/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          if (!resp.ok) {
+            // 서버에서 에러 메시지 반환시 표시
+            let msg = "등록에 실패했습니다.";
+            try {
+              const j = await resp.json();
+              if (j && j.error) msg = j.error;
+            } catch (_) {}
+            throw new Error(msg);
+          }
+
+          // 성공 시: 입력 칸 비우기
+          registerForm.reset();
+          notice.className = "notice";
+          notice.textContent = "등록이 성공했습니다.";
+
+          // 필요 시 검색 결과를 자동 갱신 (예: 오늘 항목이 추가되어 보이게 함)
+          // 여기서는 간단히 검색 버튼을 자동으로 눌러 보여주도록 함
+          const searchBtn = document.getElementById("search-btn");
+          if (searchBtn) searchBtn.click();
+        } catch (err) {
+          notice.className = "error";
+          notice.textContent =
+            err && err.message ? err.message : "등록 중 오류가 발생했습니다.";
+        } finally {
+          // 응답이 오면 버튼을 다시 활성화 — 중복 클릭 방지 완성
+          registerBtn.disabled = false;
+        }
+      });
+
+      // 사용자 경험 향상: 엔터 누르면 버튼이 눌린 뒤 비활성화되는 흐름이 자연스럽도록 키보드 이벤트 처리
+      registerForm.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") {
+          // 폼 제출을 위임 — submit 이벤트에서 버튼 비활성화 처리
+        }
+      });
+    </script>
+  </body>
+</html>

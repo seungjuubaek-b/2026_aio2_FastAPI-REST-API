@@ -1,9 +1,7 @@
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles  
-from pydantic import BaseModel, Field
-from fastapi import status
-from fastapi import HTTPException
-from pydantic import field_validator
+from fastapi import FastAPI, status, HTTPException
+from schemas import WeatherResponse, BookResponse, BookCreate, GoogleBooks
+from external_api import fetch_weather, fetch_books
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -15,28 +13,6 @@ books = [
  {"id": 4, "title": "데이터 분석 기초", "author": "박민수", "year": 2020, "tags": [], "publisher": None},
  {"id": 5, "title": "FastAPI로 배우는 백엔드", "author": "이영희", "year": 2024, "tags": [], "publisher": None},
  ]
-
-class Publisher(BaseModel):
-    name: str
-    city: str = "서울"
-
-class BookCreate(BaseModel):
-    title : str = Field(min_length=1, max_length=100) # 속성(attribute), 필드
-    author : str = Field(min_length=1, max_length=50)
-    year : int = Field(ge=1900, le=2026)
-    tag: list[str] = Field(default_factory=list)
-    publisher : Publisher | None = None
-
-    @field_validator("title")
-    @classmethod
-    def strip_title(cls, v:str) -> str:
-        v= v.strip()
-        if not v :
-            raise ValueError("제목은 필수입력입니다.(공백안됨)")
-        return v
-
-class BookResponse(BookCreate):
-    id: int
 
 @app.get("/")
 def read_root() :
@@ -77,14 +53,6 @@ def filter_books(keyword: str = "", sort: str = ""):
 def page_books(skip:int=0, limit:int=2) :
     return books[skip: skip+limit]
 
-@app.get("/books/{book_id}", response_model=BookResponse) # /books까지는 요청, {book_id} f스트링때 썼던 거
-def read_book(book_id : int) :
-    for book in books:
-        if book_id == book['id'] :
-            return book
-    # return {"error": "Not found"}
-    raise HTTPException(status_code=404, detail="도서를 찾을 수 없습니다.")
-
 @app.post("/books", response_model=BookResponse, 
           status_code=status.HTTP_201_CREATED)
 def create_book(book: BookCreate):
@@ -99,6 +67,7 @@ def create_book(book: BookCreate):
     new_book = {"id" : new_id, **book.model_dump()}
     books.append(new_book)
     return new_book
+
 # 테스트 시나리오
 # 1. 새로운 책 등록
 # 2. 북 목록을 조회
@@ -108,3 +77,34 @@ def create_book(book: BookCreate):
 
 # 요청을 하면 응답으로 상태코드가 나와야 한다.
 # 404 내가 요청하는 uri 자체가 없어요 하면 나오는 오류
+
+# @app.get("/weather/raw")
+# async def weather_raw():
+#     async with httpx.AsyncClient(timeout=5.0) as client:
+#         response = await client.get(
+#             "https://api.open-meteo.com/v1/forecast",
+#             params={
+#                 "latitude": 36.8,
+#                 "longitude": 127.1,
+#                 "current": "temperature_2m",
+#             },
+#         )
+#         return response.json()
+
+@app.get("/weather", response_model=WeatherResponse)
+async def weather(latitude: float= 36.8, longitude: float=127.1):
+    return await fetch_weather(latitude, longitude)
+
+# 엔드 포인트
+@app.get("/books/external", response_model=list[GoogleBooks])
+async def search_external_books(keyword:str, limit:int=5):
+    return await fetch_books(keyword, limit)
+
+# 항상 마지막
+@app.get("/books/{book_id}", response_model=BookResponse) # /books까지는 요청, {book_id} f스트링때 썼던 거
+def read_book(book_id : int) :
+    for book in books:
+        if book_id == book['id'] :
+            return book
+    # return {"error": "Not found"}
+    raise HTTPException(status_code=404, detail="우리 책이 아니에요")

@@ -1,10 +1,16 @@
 import httpx
 
 from schemas import WeatherResponse, GoogleBooks
+# import requests
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+GOOGLE_BOOKS_API_KEY=os.getenv("GOOGLE_BOOKS_API_KEY")
+EXTERNAL_TIMEOUT = float(os.getenv("EXTERNAL_TIMEOUT", "5.0"))
 
 async def fetch_weather(latitude: float, longitude: float) -> WeatherResponse:
-    async with httpx.AsyncClient(timeout=5.0) as client:
+    async with httpx.AsyncClient(timeout=EXTERNAL_TIMEOUT) as client:
         response = await client.get(
             "https://api.open-meteo.com/v1/forecast",
             params={
@@ -23,17 +29,11 @@ async def fetch_weather(latitude: float, longitude: float) -> WeatherResponse:
         time=data["current"]["time"],
     )
 
-import requests
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-GOOGLE_BOOKS_API_KEY=os.getenv("GOOGLE_BOOKS_API_KEY")
 if not GOOGLE_BOOKS_API_KEY :
     print("경고: GOOGLE_BOOKS_API_KEY가 설정되지 않았습니다.")
 
 async def fetch_books(keyword: str, limit: int=5) -> list[GoogleBooks]:
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=EXTERNAL_TIMEOUT) as client:
         response = await client.get(
             "https://www.googleapis.com/books/v1/volumes",
             params={
@@ -54,3 +54,17 @@ async def fetch_books(keyword: str, limit: int=5) -> list[GoogleBooks]:
                         )
                     )
     return result
+
+import json
+from pathlib import Path
+
+from schemas import ExternalBook
+
+
+def load_fallback_books() -> list[ExternalBook]:
+    path = Path(__file__).parent / "sample_books.json"
+    if not path.exists():
+        return []
+    with open(path, encoding="utf-8") as f:
+        raw = json.load(f)
+    return [ExternalBook(**item) for item in raw]
